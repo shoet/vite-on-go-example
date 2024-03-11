@@ -25,6 +25,7 @@ func main() {
 		Handler: router,
 	}
 
+	fmt.Println("Server started at http://localhost:8080")
 	if err := server.ListenAndServe(); err != nil {
 		panic(err)
 	}
@@ -71,6 +72,7 @@ func buildRouter() *chi.Mux {
 		if err != nil {
 			file, err := readFS(assetsBasePath, indexFile)
 			if err != nil {
+				fmt.Println(err)
 				http.Error(w, "Not Found", http.StatusNotFound)
 				return
 			}
