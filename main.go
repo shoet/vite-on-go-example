@@ -54,11 +54,8 @@ func getContentType(path string) string {
 	return mime.TypeByExtension(ext)
 }
 
-func hostFile(w http.ResponseWriter, path string, file fs.File) {
-	contentType := getContentType(path)
+func hostFile(w http.ResponseWriter, contentType string, file fs.File) {
 	w.Header().Set("Content-Type", contentType)
-	fmt.Println(contentType)
-
 	if _, err := io.Copy(w, file); err != nil {
 		fmt.Println(err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -78,13 +75,12 @@ func buildRouter() *chi.Mux {
 				http.Error(w, "Not Found", http.StatusNotFound)
 				return
 			}
-			hostFile(w, indexPath, file)
+			defer file.Close()
+			hostFile(w, getContentType(indexPath), file)
 			return
 		}
 		defer file.Close()
-
-		fmt.Println("hosting file")
-		hostFile(w, requestPath, file)
+		hostFile(w, getContentType(requestPath), file)
 	})
 	return router
 }
