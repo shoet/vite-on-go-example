@@ -34,18 +34,17 @@ func main() {
 const assetsBasePath = "dist"
 const indexFile = "index.html"
 
-func readFS(base string, path string) (fs.File, error) {
-	filePath := filepath.Join(base, path)
-	f, err := dist.Open(filePath)
+func readFS(path string) (fs.File, error) {
+	f, err := dist.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("file not found: %s", filePath)
+		return nil, fmt.Errorf("file not found: %s", path)
 	}
 	fInfo, err := f.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("file not found: %s", filePath)
+		return nil, fmt.Errorf("file not found: %s", path)
 	}
 	if fInfo.IsDir() {
-		return nil, fmt.Errorf("file not found: %s", filePath)
+		return nil, fmt.Errorf("file not found: %s", path)
 	}
 	return f, nil
 }
@@ -55,9 +54,10 @@ func getContentType(path string) string {
 	return mime.TypeByExtension(ext)
 }
 
-func hostFile(w http.ResponseWriter, r *http.Request, file fs.File) {
-	contentType := getContentType(r.URL.Path)
+func hostFile(w http.ResponseWriter, path string, file fs.File) {
+	contentType := getContentType(path)
 	w.Header().Set("Content-Type", contentType)
+	fmt.Println(contentType)
 
 	if _, err := io.Copy(w, file); err != nil {
 		fmt.Println(err)
@@ -68,21 +68,23 @@ func hostFile(w http.ResponseWriter, r *http.Request, file fs.File) {
 func buildRouter() *chi.Mux {
 	router := chi.NewRouter()
 	router.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		file, err := readFS(assetsBasePath, r.URL.Path)
+		requestPath := filepath.Join(assetsBasePath, r.URL.Path)
+		file, err := readFS(requestPath)
 		if err != nil {
-			file, err := readFS(assetsBasePath, indexFile)
+			indexPath := filepath.Join(assetsBasePath, indexFile)
+			file, err := readFS(indexPath)
 			if err != nil {
 				fmt.Println(err)
 				http.Error(w, "Not Found", http.StatusNotFound)
 				return
 			}
-			hostFile(w, r, file)
+			hostFile(w, indexPath, file)
 			return
 		}
 		defer file.Close()
 
 		fmt.Println("hosting file")
-		hostFile(w, r, file)
+		hostFile(w, requestPath, file)
 	})
 	return router
 }
