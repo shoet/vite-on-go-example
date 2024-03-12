@@ -1,0 +1,54 @@
+service: vite-on-go-example
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  region: ap-northeast-1
+  environment:
+  ecr:
+    images:
+      SPAServerImage:
+        path: ./
+        file: Dockerfile
+        platform: linux/amd64
+
+functions:
+  BlogBackend:
+    role: LambdaRole
+    image:
+      name: SPAServerImage
+    name: spa-server
+    description: "Vite on Go"
+    events:
+      - httpApi:
+          path: /{proxy+}
+          method: any
+          response:
+            headers:
+              Content-Type: "'text/html'"
+    timeout: 30
+
+resources:
+  Resources:
+    LambdaRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: LambdaRole
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - "sts:AssumeRole"
+        Policies:
+          - PolicyName: LambdaPolicy
+            PolicyDocument:
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "logs:CreateLogGroup"
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Resource: "arn:aws:logs:*:*:*"
